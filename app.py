@@ -348,7 +348,7 @@ embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-b
 
 def load_preprocessed_vectorstore():
     try:
-        reader = PdfReader("/content/sound.pdf")
+        reader = PdfReader("sound.pdf")
         document = []
         dict1 = {}
         indx = 0
