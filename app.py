@@ -276,8 +276,8 @@ def get_context_retriever_chain(vector_store):
     retriever = vector_store.as_retriever()
 
     prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
+        MessagesPlaceholder(variable_name="chat_history"),  # This is valid
+        ("human", "{input}"),  # Change "context" to "human" or "user" if it was wrong
         ("system", """
         Given the chat history and the latest user question, which might reference context in the chat history,
         formulate a standalone question that can be understood without the chat history.
@@ -290,9 +290,9 @@ def get_context_retriever_chain(vector_store):
         """)
     ])
 
-    # Directly create the retriever chain without 'input_variables'
     retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
     return retriever_chain
+
 
 
 def get_conversational_chain(retriever_chain):
