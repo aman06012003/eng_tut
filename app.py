@@ -17,6 +17,9 @@ from dotenv import load_dotenv, dotenv_values
 from langchain.schema.document import Document
 from dotenv import load_dotenv, dotenv_values
 import os
+import pysqlite3
+import sys
+sys.modules['sqlite3'] = pysqlite3
 load_dotenv()
 import streamlit as st
 HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
