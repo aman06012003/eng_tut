@@ -334,7 +334,6 @@ if not GOOGLE_API_KEY:
 
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-st.set_page_config(page_title="English Tutor Chatbot", layout="centered")
 st.title("English Tutor Chatbot")
 
 llm = ChatGoogleGenerativeAI(
