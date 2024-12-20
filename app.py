@@ -208,11 +208,8 @@ st.title("English Tutor Chatbot")
 # API Key input
 google_api = os.getenv("GOOGLE_API_KEY")
 HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-os.environ['HUGGINGFACEHUB_API_TOKEN'] = HUGGINGFACEHUB_API_TOKEN
-os.environ["GOOGLE_API_KEY"] = google_api
-if not google_api:
-    st.warning("Please enter your Google API key in the sidebar.")
-    st.stop()
+os.environ['HUGGINGFACEHUB_API_TOKEN'] = str(HUGGINGFACEHUB_API_TOKEN)
+os.environ["GOOGLE_API_KEY"] = str(google_api)
 
 # Path to the PDF file
 pdf_path = "sound.pdf"  # Replace with your PDF file's path
