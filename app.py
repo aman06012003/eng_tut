@@ -290,7 +290,8 @@ def get_context_retriever_chain(vector_store):
         """)
     ])
 
-    retriever_chain = create_history_aware_retriever(llm, retriever, prompt, input_variables=["chat_history", "input", "context"])
+    # Directly create the retriever chain without 'input_variables'
+    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
     return retriever_chain
 
 
