@@ -64,7 +64,12 @@ def load_preprocessed_vectorstore():
         
             document_chunks = text_splitter.split_documents(document)
 
-        vector_store = Chroma.from_documents(document_chunks,embedding=embeddings, persist_directory='./data')
+        vector_store =Chroma.from_documents(
+            
+            embedding=embeddings,
+            documents=document_chunks,
+            persist_directory="./data32"
+        )
         return vector_store
     except Exception as e:
         st.error(f"Error creating vector store: {e}")
