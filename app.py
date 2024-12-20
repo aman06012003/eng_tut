@@ -290,8 +290,9 @@ def get_context_retriever_chain(vector_store):
         """)
     ])
 
-    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
+    retriever_chain = create_history_aware_retriever(llm, retriever, prompt, input_variables=["chat_history", "input", "context"])
     return retriever_chain
+
 
 def get_conversational_chain(retriever_chain):
     """Creates a conversational chain using the retriever chain."""
@@ -300,7 +301,8 @@ def get_conversational_chain(retriever_chain):
         I am an advanced English tutor designed to help users improve their English language skills through interactive lessons, personalized feedback, and quizzes. Your goal is to enhance their vocabulary, grammar, reading comprehension, and speaking ability. You should adapt to their skill level and learning preferences.
         """),
         MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}")
+        ("human", "{input}"),
+        ("context", "{context}")
     ])
 
     stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
@@ -319,7 +321,8 @@ def get_response(user_query):
 
     response = conversation_rag_chain.invoke({
         "chat_history": formatted_chat_history,
-        "input": user_query
+        "input": user_query,
+        "context": ""  # Provide additional context if available
     })
 
     return response['answer']
