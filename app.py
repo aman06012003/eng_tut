@@ -327,8 +327,8 @@ sys.modules['sqlite3'] = pysqlite3
 import os
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
-os.environ['HUGGINGFACEHUB_API_TOKEN'] = HUGGINGFACEHUB_API_TOKEN
-GOOGLE_API_KEY = str(os.getenv("GOOGLE_API_KEY"))
+os.environ['HUGGINGFACEHUB_API_TOKEN'] = "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"
+GOOGLE_API_KEY = "AIzaSyAytkzRS0Xp0pCyo6WqKJ4m1o330bF-gPk"
 if not GOOGLE_API_KEY:
     raise ValueError("Gemini API key not found. Please set it in the .env file.")
 
