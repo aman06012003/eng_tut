@@ -194,7 +194,6 @@
 import streamlit as st
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain_google_genai import ChatGoogleGenerativeAI
