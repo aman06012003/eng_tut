@@ -59,12 +59,12 @@ def load_preprocessed_vectorstore():
             document.append(Document(page_content=page.extract_text()))
             text_splitter = RecursiveCharacterTextSplitter(
             separators=["\n\n", "\n", ". ", " ", ""],
-            chunk_size=3000, 
-            chunk_overlap=1000)
+            chunk_size=500, 
+            chunk_overlap=100)
         
             document_chunks = text_splitter.split_documents(document)
 
-        vector_store =Chroma.from_documents(document_chunks,embedding=embeddings, persist_directory='./data')
+        vector_store = Chroma.from_documents(document_chunks,embedding=embeddings, persist_directory='./data')
         return vector_store
     except Exception as e:
         st.error(f"Error creating vector store: {e}")
