@@ -303,14 +303,16 @@ def get_conversational_chain(retriever_chain):
         I am an advanced English tutor designed to help users improve their English language skills through interactive lessons, personalized feedback, and quizzes. Your goal is to enhance their vocabulary, grammar, reading comprehension, and speaking ability. You should adapt to their skill level and learning preferences.
         """),
         MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}")
+        ("human", "{input}"),
+        ("assistant", "{context}")  # Include 'context' explicitly
     ])
 
-    # Create a chain to process the documents retrieved
-    stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
+    # Ensure the prompt includes 'context'
+    stuff_documents_chain = create_stuff_documents_chain(llm, prompt, document_variable_name="context")
 
     # Combine the retriever chain with the document processing chain
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
+
 
 
 def get_response(user_query):
