@@ -90,3 +90,5 @@ docx2txt
 sentence-transformers==3.2.1
 chromadb
 pypdf
+db-sqlite3
+pysqlite3-binary
