@@ -320,12 +320,14 @@ def get_response(user_query):
     retriever_chain = get_context_retriever_chain(st.session_state.vector_store)
     conversation_rag_chain = get_conversational_chain(retriever_chain)
 
+    # Format chat history correctly
     formatted_chat_history = [
-        {"author": "user", "content": message.content} if isinstance(message, HumanMessage) else
-        {"author": "assistant", "content": message.content}
+        {"author": "user", "content": message["content"]} if message["author"] == "user" else
+        {"author": "assistant", "content": message["content"]}
         for message in st.session_state.chat_history
     ]
 
+    # Invoke the chain
     response = conversation_rag_chain.invoke({
         "chat_history": formatted_chat_history,
         "input": user_query,
@@ -333,6 +335,7 @@ def get_response(user_query):
     })
 
     return response['answer']
+
 
 # Load the preprocessed vector store
 if "vector_store" not in st.session_state:
