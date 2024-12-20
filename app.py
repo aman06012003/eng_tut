@@ -277,7 +277,7 @@ def get_context_retriever_chain(vector_store):
 
     prompt = ChatPromptTemplate.from_messages([
         MessagesPlaceholder(variable_name="chat_history"),  # This is valid
-        ("human", "{input}"),  # Change "context" to "human" or "user" if it was wrong
+        ("user", "{input}"),  # Change "context" to "human" or "user" if it was wrong
         ("system", """
         Given the chat history and the latest user question, which might reference context in the chat history,
         formulate a standalone question that can be understood without the chat history.
@@ -297,17 +297,21 @@ def get_context_retriever_chain(vector_store):
 
 def get_conversational_chain(retriever_chain):
     """Creates a conversational chain using the retriever chain."""
+    # Define the prompt
     prompt = ChatPromptTemplate.from_messages([
         ("system", """
         I am an advanced English tutor designed to help users improve their English language skills through interactive lessons, personalized feedback, and quizzes. Your goal is to enhance their vocabulary, grammar, reading comprehension, and speaking ability. You should adapt to their skill level and learning preferences.
         """),
         MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        ("context", "{context}")
+        ("human", "{input}")
     ])
 
+    # Create a chain to process the documents retrieved
     stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
+
+    # Combine the retriever chain with the document processing chain
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
+
 
 def get_response(user_query):
     """Handles user input and generates a response using the conversational chain."""
