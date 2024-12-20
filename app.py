@@ -358,8 +358,8 @@ def load_preprocessed_vectorstore():
 
         text_splitter = RecursiveCharacterTextSplitter(
             separators=["\n\n", "\n", ". ", " ", ""],
-            chunk_size=3000, 
-            chunk_overlap=1000)
+            chunk_size=500, 
+            chunk_overlap=100)
         
         document_chunks = text_splitter.split_documents(document)
 
