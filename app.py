@@ -297,41 +297,39 @@ def get_context_retriever_chain(vector_store):
 
 def get_conversational_chain(retriever_chain):
     """Creates a conversational chain using the retriever chain."""
-    # Define the prompt
+    # For Gemini, we'll include the system message as part of the first human message
+    system_message = """I am an advanced English tutor designed to help users improve their English language skills through interactive lessons, personalized feedback, and quizzes. Your goal is to enhance their vocabulary, grammar, reading comprehension, and speaking ability. You should adapt to their skill level and learning preferences."""
+    
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """
-        I am an advanced English tutor designed to help users improve their English language skills through interactive lessons, personalized feedback, and quizzes. Your goal is to enhance their vocabulary, grammar, reading comprehension, and speaking ability. You should adapt to their skill level and learning preferences.
-        """),
         MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        ("assistant", "{context}")  # Include 'context' explicitly
+        ("human", f"{system_message}\n\nUser query: {{input}}"),
+        ("assistant", "{context}")
     ])
 
-    # Ensure the prompt includes 'context'
+    # Create the document chain
     stuff_documents_chain = create_stuff_documents_chain(llm, prompt, document_variable_name="context")
 
     # Combine the retriever chain with the document processing chain
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
-
-
 
 def get_response(user_query):
     """Handles user input and generates a response using the conversational chain."""
     retriever_chain = get_context_retriever_chain(st.session_state.vector_store)
     conversation_rag_chain = get_conversational_chain(retriever_chain)
 
-    # Format chat history to align with LangChain's expected structure
-    formatted_chat_history = [
-        {"role": "user", "content": message["content"]} if message["author"] == "user" else
-        {"role": "assistant", "content": message["content"]}
-        for message in st.session_state.chat_history
-    ]
+    # Format chat history to include only user and assistant messages
+    formatted_chat_history = []
+    for message in st.session_state.chat_history:
+        if message["author"] == "user":
+            formatted_chat_history.append(HumanMessage(content=message["content"]))
+        elif message["author"] == "assistant":
+            formatted_chat_history.append(AIMessage(content=message["content"]))
 
     # Invoke the chain
     response = conversation_rag_chain.invoke({
         "chat_history": formatted_chat_history,
         "input": user_query,
-        "context": ""  # Provide additional context if available
+        "context": ""
     })
 
     return response['answer']
