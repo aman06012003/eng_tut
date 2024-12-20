@@ -208,6 +208,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.schema.document import Document
+from langchain_core.messages import HumanMessage, AIMessage
 from huggingface_hub import notebook_login
 from dotenv import load_dotenv
 import streamlit as st
