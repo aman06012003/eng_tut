@@ -191,175 +191,110 @@
 
 
 
-
-
-
-
-
-
-from pypdf import PdfReader
-from langchain.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.schema.document import Document
-from langchain_core.messages import HumanMessage, AIMessage
-from huggingface_hub import notebook_login
-from dotenv import load_dotenv
 import streamlit as st
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.chains import ConversationalRetrievalChain
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.prompts.chat import SystemMessagePromptTemplate
+from langchain.memory import ConversationBufferMemory
 import os
-import pysqlite3
-import sys
+from langchain.embeddings import HuggingFaceEmbeddings
 
-# Redirect sqlite3 to pysqlite3
-sys.modules['sqlite3'] = pysqlite3
+# Streamlit app setup
+st.title("English Tutor Chatbot")
 
-# Load environment variables
-load_dotenv()
+# API Key input
+google_api = os.getenv("GOOGLE_API_KEY")
 HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 os.environ['HUGGINGFACEHUB_API_TOKEN'] = HUGGINGFACEHUB_API_TOKEN
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+os.environ["GOOGLE_API_KEY"] = google_api
+if not google_api:
+    st.warning("Please enter your Google API key in the sidebar.")
+    st.stop()
 
-if not GOOGLE_API_KEY:
-    raise ValueError("Gemini API key not found. Please set it in the .env file.")
+# Path to the PDF file
+pdf_path = "sound.pdf"  # Replace with your PDF file's path
 
-# Streamlit app configuration
-st.set_page_config(page_title="English Tutor Chatbot", layout="centered")
-st.title("English Tutor Bot")
+if os.path.exists(pdf_path):
+    # Load and split PDF
+    st.info("Processing the PDF file. This may take a while...")
+    loader = PyPDFLoader(pdf_path)
+    pages = loader.load()
 
-# Initialize LLM
-llm = ChatGoogleGenerativeAI(
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    documents = text_splitter.split_documents(pages)
+
+    # Create embeddings and FAISS vectorstore
+    embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
+    vectorstore = FAISS.from_documents(documents, embeddings)
+
+    st.success("PDF processed and knowledge base created!")
+    system_prompt = SystemMessagePromptTemplate.from_template(
+        """You are an advanced English tutor chatbot designed to help users improve their English language skills through personalized lessons, feedback, and interactive practice. Your focus areas include vocabulary building, grammar mastery, reading comprehension, writing skills, and speaking fluency. Adapt to each user's proficiency level and tailor your teaching style to their goals.
+
+User Interaction Guidelines:
+Learning Mode:
+
+Start by asking users about their current English proficiency level (Beginner, Intermediate, Advanced) and their specific learning objectives (e.g., improve vocabulary, prepare for an exam, enhance conversational fluency).
+Example Prompt: "Hi! Let's get started. What is your current English level? Are you looking to focus on grammar, expand your vocabulary, or practice speaking?"
+Interactive Lessons:
+
+Provide lessons based on the user's level:
+Beginner: Use simple explanations and practice tasks. Example: "What is the plural form of 'book'?"
+Intermediate: Focus on more nuanced topics with examples. Example: "Can you form a sentence using the past perfect tense?"
+Advanced: Encourage deeper exploration of language. Example: "Explain the difference between 'affect' and 'effect' with examples."
+Include real-world examples and scaffold exercises to ensure understanding.
+Quizzes and Feedback:
+
+Use engaging quizzes after lessons to reinforce learning:
+Example Quiz Question: "Fill in the blank: 'The dog ___ in the yard.' (A) run (B) runs (C) running (D) ran"
+Provide immediate feedback with explanations for correct or incorrect answers. Example: "Correct! 'Runs' is the correct answer because the sentence is in the present simple tense."
+Speaking and Writing Practice:
+
+Simulate conversations and give constructive feedback on grammar, vocabulary, and pronunciation. Example Prompt: "Imagine you are ordering coffee at a café. Start the conversation."
+Offer writing prompts and review the user's submissions with suggestions for improvement. Example: "Write a paragraph about your favorite hobby and include at least three adjectives."
+Motivation and Progress Tracking:
+
+Celebrate progress with positive reinforcement. Example: "Great job! You've mastered the past tense. Ready to tackle the future tense?"
+Suggest follow-up activities based on their performance. Example: "Your vocabulary is improving! Shall we try a lesson on idiomatic expressions?"""
+    )
+
+    # Set up Conversational Retrieval Chain
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    chatbot = ConversationalRetrievalChain(
+        llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-pro-latest",
     temperature=0.2,
     max_tokens=None,
     timeout=None,
     max_retries=2,
 )
+,
+        retriever=vectorstore.as_retriever(),
+        memory=memory,
+        system_prompt=system_prompt
+    )
 
-# Initialize embeddings
-embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
+    # Chat interface
+    st.header("Chat with the English Tutor")
 
-def load_preprocessed_vectorstore():
-    """Loads and preprocesses documents into a Chroma vector store."""
-    try:
-        reader = PdfReader("sound.pdf")
-        document = []
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-        for i in range(34, 456):
-            page = reader.pages[i]
-            document.append(Document(page_content=page.extract_text()))
+    user_input = st.text_input("You:", "", key="user_input")
 
-        text_splitter = RecursiveCharacterTextSplitter(
-            separators=["\n\n", "\n", ". ", " ", ""],
-            chunk_size=500,
-            chunk_overlap=100
-        )
-        document_chunks = text_splitter.split_documents(document)
+    if st.button("Send") and user_input.strip() != "":
+        with st.spinner("Generating response..."):
+            response = chatbot.run(user_input)
+            st.session_state.chat_history.append((user_input, response))
 
-        vector_store =Chroma.from_documents(
-            
-            embedding=embeddings,
-            documents=document_chunks,
-            persist_directory="./data")
-        return vector_store
-    except Exception as e:
-        st.error(f"Error creating vector store: {e}")
-        return None
-
-def get_context_retriever_chain(vector_store):
-    """Creates a history-aware retriever chain."""
-    retriever = vector_store.as_retriever()
-
-    prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        ("assistant", """
-        Given the chat history and the latest user question, formulate a standalone question.
-        If the question is directly addressed within the provided document, provide a relevant answer.
-        If the question is not explicitly addressed in the document, return: 'This question is beyond the scope of the available information. Please contact the mentor for further assistance.'
-        If the question is about any irrelevant topic like politics, war, homosexuality, transgender etc, return: 'Please reframe your question.'
-        """)
-    ])
-
-    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
-    return retriever_chain
-
-def get_conversational_chain(retriever_chain):
-    """Creates a conversational chain using the retriever chain."""
-    prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        ("assistant", "As an English tutor, I will help you with: {context}")
-    ])
-
-    stuff_documents_chain = create_stuff_documents_chain(llm, prompt, document_variable_name="context")
-    return create_retrieval_chain(retriever_chain, stuff_documents_chain)
-
-def get_response(user_query):
-    """Handles user input and generates a response using the conversational chain."""
-    retriever_chain = get_context_retriever_chain(st.session_state.vector_store)
-    conversation_rag_chain = get_conversational_chain(retriever_chain)
-
-    # Convert chat history to proper message format
-    formatted_chat_history = []
-    for message in st.session_state.chat_history:
-        if message["author"] == "user":
-            formatted_chat_history.append(HumanMessage(content=message["content"]))
-        elif message["author"] == "assistant":
-            formatted_chat_history.append(AIMessage(content=message["content"]))
-
-    # Invoke the chain with properly formatted history
-    response = conversation_rag_chain.invoke({
-        "chat_history": formatted_chat_history,
-        "input": user_query,
-        "context": ""
-    })
-    
-    return response['answer']
-
-# Initialize chat history with a regular assistant message instead of system message
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        {"author": "assistant", "content": "Hello! I'm your English tutor. I'm here to help you improve your English language skills through lessons, practice, and feedback. How can I assist you today?"}
-    ]
-
-
-# Load the preprocessed vector store
-if "vector_store" not in st.session_state:
-    st.session_state.vector_store = load_preprocessed_vectorstore()
-
-# Initialize chat history if not present
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        {"author": "assistant", "content": "Hello, I am an English Tutor. How can I help you?"}
-    ]
-
-# Main app logic
-if st.session_state.get("vector_store") is None:
-    st.error("Failed to load preprocessed data. Please ensure the data exists in './data' directory.")
-else:
     # Display chat history
-    for message in st.session_state.chat_history:
-        if message["author"] == "assistant":
-            with st.chat_message("system"):
-                st.write(message["content"])
-        elif message["author"] == "user":
-            with st.chat_message("human"):
-                st.write(message["content"])
+    for user_msg, bot_msg in st.session_state.chat_history:
+        st.markdown(f"**You:** {user_msg}")
+        st.markdown(f"**Tutor:** {bot_msg}")
+else:
+    st.error(f"The file at {pdf_path} does not exist. Please check the path and try again.")
 
-    # Add user input box
-    with st.form(key="chat_form"):
-        user_query = st.text_input("Type your message here...", key="user_input")
-        submit_button = st.form_submit_button("Send")
-
-        if submit_button and user_query:
-            response = get_response(user_query)
-            st.session_state.chat_history.append({"author": "user", "content": user_query})
-            st.session_state.chat_history.append({"author": "assistant", "content": response})
-            st.experimental_rerun()
