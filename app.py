@@ -194,7 +194,7 @@
 import streamlit as st
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.vectorstores import FAISS
+from langchain.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts.chat import SystemMessagePromptTemplate
@@ -225,7 +225,7 @@ if os.path.exists(pdf_path):
 
     # Create embeddings and FAISS vectorstore
     embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-mpnet-base-v2')
-    vectorstore = FAISS.from_documents(documents, embeddings)
+    vectorstore = Chroma.from_documents(documents, embedding_function=embeddings, persist_directory="chroma_db")
 
     st.success("PDF processed and knowledge base created!")
     system_prompt = SystemMessagePromptTemplate.from_template(
