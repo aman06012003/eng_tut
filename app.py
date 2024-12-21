@@ -31,8 +31,8 @@ if not GOOGLE_API_KEY:
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 # Streamlit app configuration
-st.set_page_config(page_title="College Data Chatbot", layout="centered")
-st.title("PreCollege Chatbot GEMINI+ HuggingFace Embeddings")
+st.set_page_config(page_title="English Chatbot", layout="centered")
+st.title("English Tutor Bot")
 
 # Initialize Google Generative AI LLM 
 llm = ChatGoogleGenerativeAI(
@@ -48,7 +48,7 @@ embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-b
 
 def load_preprocessed_vectorstore():
     try:
-        loader = PyPDFLoader("./Updated_structred_aman.pdf")
+        loader = PyPDFLoader("sound.pdf")
         documents = loader.load()
 
         text_splitter = RecursiveCharacterTextSplitter(
